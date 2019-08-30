@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	arg "github.com/alexflint/go-arg"
@@ -31,18 +32,14 @@ func main() {
 	correctA := 0
 	var ans string
 	scanner := bufio.NewScanner(os.Stdin)
-	t := time.NewTicker(time.Second * time.Duration(args.Timeout))
+	ansChan := make(chan string)
+	fmt.Println("Total time: %d seconds!", args.Timeout)
+
+	t := time.NewTimer(time.Second * time.Duration(args.Timeout))
 	defer t.Stop()
 
-	fmt.Println("Total time: %d seconds!", args.Timeout)
 loop:
 	for {
-		select {
-		case <-t.C:
-			fmt.Println("Time is up!")
-			break loop
-		default:
-		}
 		record, err := r.Read()
 		if err == io.EOF {
 			break
@@ -51,12 +48,22 @@ loop:
 			panic(err)
 		}
 		fmt.Printf("what is %s?\n", record[0])
-		scanner.Scan()
-		ans = scanner.Text()
-		if ans == record[1] {
-			correctA++
+		go func() {
+			scanner.Scan()
+			ans = scanner.Text()
+			ansChan <- strings.TrimSpace(ans)
+		}()
+
+		select {
+		case <-t.C:
+			fmt.Println("Time is up!")
+			break loop
+		case ans := <-ansChan:
+			if ans == record[1] {
+				correctA++
+			}
+			numQ++
 		}
-		numQ++
 	}
 	fmt.Printf("%d / %d\n", correctA, numQ)
 }
