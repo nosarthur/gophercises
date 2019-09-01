@@ -24,12 +24,15 @@ type RmCmd struct {
 	Numbers []int `arg:"positional, required"`
 }
 
-var args struct {
+type args struct {
 	Add  *AddCmd  `arg:"subcommand:add"`
 	List *ListCmd `arg:"subcommand:list"`
 	Rm   *RmCmd   `arg:"subcommand:rm"`
 }
 
+func (args) Version() string {
+	return "todo 0.1.0"
+}
 func main() {
 	d, err := homedir.Dir()
 	if err != nil {
@@ -38,6 +41,7 @@ func main() {
 	dbPath := filepath.Join(d, "my_task.db")
 	db.MustInit(dbPath)
 
+	var args args
 	arg.MustParse(&args)
 
 	switch {
