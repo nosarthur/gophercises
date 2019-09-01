@@ -2,13 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
-	"time"
 
 	arg "github.com/alexflint/go-arg"
-	"github.com/boltdb/bolt"
-	"github.com/nosarthur/gophercises/e7taskManager/todo"
+	"github.com/nosarthur/gophercises/e7taskManager/db"
 )
 
 // init the db and bucket
@@ -30,38 +27,39 @@ type DoCmd struct {
 	Number int `arg:"positional, required"`
 }
 
+// RmCmd removes a todo
+type RmCmd struct {
+	Number int `arg:"positional, required"`
+}
+
 var args struct {
 	Add  *AddCmd  `arg:"subcommand:add"`
 	List *ListCmd `arg:"subcommand:list"`
 	Do   *DoCmd   `arg:"subcommand:do"`
+	Rm   *RmCmd   `arg:"subcommand:rm"`
 }
 
-var dbLoc = "my.db"
+var dbPath = "my.db"
 
 func main() {
-	db, err := bolt.Open(dbLoc, 0600, &bolt.Options{Timeout: 1 * time.Second})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-	db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("todos"))
-		if err != nil {
-			return fmt.Errorf("Cannot create bucket: %s", err)
-		}
-		return nil
-	})
-
+	db.MustInit(dbPath)
 	arg.MustParse(&args)
 
 	switch {
 	case args.Add != nil:
-		if err := todo.Add(db, strings.Join(args.Add.Task, " ")); err != nil {
+		if err := db.Add(strings.Join(args.Add.Task, " ")); err != nil {
+			fmt.Println("%s", err)
 			panic("Fail to add task!")
 		}
 	case args.List != nil:
-		fmt.Println("list")
+		if err := db.List(); err != nil {
+			fmt.Println("%s", err)
+			panic("cannot list")
+		}
 	case args.Do != nil:
 		fmt.Printf("do %d\n", args.Do.Number)
+	case args.Rm != nil:
+		fmt.Println("rm")
 	}
+
 }
