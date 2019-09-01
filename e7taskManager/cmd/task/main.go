@@ -2,16 +2,13 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	arg "github.com/alexflint/go-arg"
+	"github.com/mitchellh/go-homedir"
 	"github.com/nosarthur/gophercises/e7taskManager/db"
 )
-
-// init the db and bucket
-func init() {
-
-}
 
 // AddCmd is a subcommand
 type AddCmd struct {
@@ -22,44 +19,46 @@ type AddCmd struct {
 type ListCmd struct {
 }
 
-// DoCmd finishes a todo
-type DoCmd struct {
-	Number int `arg:"positional, required"`
-}
-
 // RmCmd removes a todo
 type RmCmd struct {
-	Number int `arg:"positional, required"`
+	Numbers []int `arg:"positional, required"`
 }
 
 var args struct {
 	Add  *AddCmd  `arg:"subcommand:add"`
 	List *ListCmd `arg:"subcommand:list"`
-	Do   *DoCmd   `arg:"subcommand:do"`
 	Rm   *RmCmd   `arg:"subcommand:rm"`
 }
 
-var dbPath = "my.db"
-
 func main() {
+	d, err := homedir.Dir()
+	if err != nil {
+		panic(err)
+	}
+	dbPath := filepath.Join(d, "my_task.db")
 	db.MustInit(dbPath)
+
 	arg.MustParse(&args)
 
 	switch {
 	case args.Add != nil:
 		if err := db.Add(strings.Join(args.Add.Task, " ")); err != nil {
-			fmt.Println("%s", err)
+			fmt.Printf("%s", err)
 			panic("Fail to add task!")
 		}
+	case args.Rm != nil:
+		nums := map[int]struct{}{}
+		for _, x := range args.Rm.Numbers {
+			nums[x] = struct{}{}
+		}
+		db.Rm(nums)
 	case args.List != nil:
+		fallthrough
+	default:
 		if err := db.List(); err != nil {
-			fmt.Println("%s", err)
+			fmt.Printf("%s", err)
 			panic("cannot list")
 		}
-	case args.Do != nil:
-		fmt.Printf("do %d\n", args.Do.Number)
-	case args.Rm != nil:
-		fmt.Println("rm")
 	}
 
 }
