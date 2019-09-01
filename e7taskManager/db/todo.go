@@ -17,7 +17,7 @@ func Add(task string) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketName)
 		t := time.Now()
-		return b.Put([]byte(t.Format("2006-01-02")), []byte(task))
+		return b.Put([]byte(t.Format("2006-01-02T22:08:41")), []byte(task))
 	})
 }
 
